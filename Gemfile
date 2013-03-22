@@ -1,5 +1,6 @@
 # A sample Gemfile
 source "https://rubygems.org"
 
-gem 'eventmachine'
 gem 'amqp'
+gem 'eventmachine'
+gem 'nokogiri'
