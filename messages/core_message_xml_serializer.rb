@@ -21,12 +21,14 @@ module Korwe
           case message.message_type
             when :ServiceRequest
               b.function(message.function)
-              b.parameters do |pb|
+              b.parameters {
                 message.params.each do |k,v|
-                  pb.name(k)
-                  pb.value(v)
+                  b.parameter {
+                    b.name(k.to_s)
+                    b.value(v.to_s)
+                  }
                 end
-              end
+              }
             when :InitiateSessionResponse, :KillSessionResponse
               add_response_elements(b, message)
             when :ServiceResponse
