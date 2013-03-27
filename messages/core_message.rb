@@ -17,6 +17,7 @@ module Korwe
         self.session_id = session_id
         self.message_type = message_type
         self.description = "Session Id: #{session_id} Type: #{message_type}"
+        self.timestamp = Time.now
       end
     end
   end
