@@ -2,6 +2,6 @@
 source "https://rubygems.org"
 
 gem 'qpid_messaging'
-gem 'eventmachine'
+gem 'rake'
 gem 'nokogiri'
 gem 'builder'

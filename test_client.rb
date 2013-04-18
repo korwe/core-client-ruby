@@ -1,5 +1,4 @@
 require 'builder'
-require 'eventmachine'
 require 'qpid_messaging'
 require File.expand_path('../messages/core_message',__FILE__)
 require File.expand_path('../messages/core_response',__FILE__)

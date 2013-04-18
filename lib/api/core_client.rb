@@ -6,10 +6,12 @@ module Korwe
       def initialize
         @sender_queue_definition = MessageQueue::ClientToCore
         @data_queue_definition = MessageQueue::Data
-        @serializer = CoreMessageXmlSerializer.new
+        @message_cache = Hash.new
+        @data_cache = Hash.new
       end
 
-      def connect
+      def connect(api_definition_path)
+        @serializer = CoreMessageXmlSerializer.new(api_definition_path)
         @connection = Messaging::Connection.new
         @connection.open
         @session = @connection.create_session
@@ -37,6 +39,7 @@ module Korwe
 
         request = Messaging::Message.new
         request.content = @serializer.serialize(message)
+        puts "SENDING: #{request.content}"
 
 
           response_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::CoreToClient, message.session_id)
