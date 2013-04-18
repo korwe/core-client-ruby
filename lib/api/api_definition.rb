@@ -1,7 +1,7 @@
 module Korwe
   module TheCore
     class TypeDefinition
-      attr_accessor :name,  :type_properties
+      attr_accessor :name,  :type_properties, :inherits_from
 
       def initialize(name)
         self.name=name
@@ -67,6 +67,8 @@ module Korwe
         self.types.merge! PRIMITIVE_TYPES
         self.types.merge! GENERIC_TYPES
         initialize_services api_directory + File::SEPARATOR + "services"
+        #Do this last so that we don't need to manage dependency loading - performance hit, but 1 time only
+        initialize_inheritance
       end
 
       def initialize_types(types_path)
@@ -89,7 +91,9 @@ module Korwe
           type_parameter_offset = attribute_definition['type'].index('<')
           #TODO: Do something with generic type parameters
           type.type_properties[attribute_definition['name']] = type_parameter_offset.nil? ? attribute_definition['type'].strip : attribute_definition['type'].slice(0,type_parameter_offset).strip
-        end
+        end if yaml['attributes']
+
+        type.inherits_from=yaml['inherits_from']
         self.types[type.name] = type
       end
 
@@ -121,6 +125,27 @@ module Korwe
         self.services[service.name] = service
       end
 
+
+      def initialize_inheritance
+        processed = []
+        #loop through all type defitions merging properties of the parent class
+
+        process_inheritance = Proc.new do |type_def, proc|
+          unless processed.any?{|name| type_def.inherits_from==name}
+            unless type_def.inherits_from.nil?
+              #Depth first
+              parent_type = types[type_def.inherits_from]
+              proc.call(parent_type)
+              #now merge
+              type_def.type_properties.merge! parent_type.type_properties
+            end
+          end
+        end
+
+        self.types.values.each do |type_definition|
+          process_inheritance.call(type_definition, process_inheritance)
+        end
+      end
     end
   end
 end
