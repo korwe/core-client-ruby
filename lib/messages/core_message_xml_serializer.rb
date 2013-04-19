@@ -112,17 +112,22 @@ module Korwe
 
       def serialize_type(builder, type_name, value)
         type = @api_definition.types[type_name]
-        unless ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==type_name}
-          #process each property
-          type.type_properties.each do |prop_name, prop_type|
-            if ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==prop_type}
-              builder.__send__ prop_name, value.to_s
-            else
-              serialize_type builder, prop_type, value.send(prop_name)
-            end
-          end
-        else
+        if ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==type_name}
           builder.__send__ type.name, value.to_s
+        else
+          builder.tag!(type.name) {
+            #process each property of the type
+            type.type_properties.each do |prop_name, prop_type|
+              prop_value = value.send(prop_name)
+              if prop_value
+                if ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==prop_type} #If primitive
+                  builder.__send__ prop_name, prop_value.to_s
+                else
+                  serialize_type builder, prop_type, prop_value
+                end
+              end
+            end
+          }
         end
         builder
       end
@@ -159,12 +164,22 @@ module Korwe
               unless type #Not defined at all, TODO: Perhaps raise error
                 return nil
               else
-                instance = type.klass.nil? ? Hash.new : type.klass.new
-                type.type_properties.each do |property_name, property_type|
-                  property_node = root.at_xpath("./#{property_name}")
-                  property_node.node_name=@api_definition.types[property_type].name
-                  instance[property_name] = deserialize_data(property_node)
+                if type.klass.nil?
+                  instance = Hash.new
+                  type.type_properties.each do |property_name, property_type|
+                    property_node = root.at_xpath("./#{property_name}")
+                    property_node.node_name=@api_definition.types[property_type].name
+                    instance[property_name] = deserialize_data(property_node)
+                  end
+                else
+                  instance = type.klass.new
+                  type.type_properties.each do |property_name, property_type|
+                    property_node = root.at_xpath("./#{property_name}")
+                    property_node.node_name=@api_definition.types[property_type].name
+                    instance.send("#{property_name}=", deserialize_data(property_node))
+                  end
                 end
+
                 return instance
               end
             end
