@@ -42,8 +42,8 @@ module Korwe
         puts "SENDING: #{request.content}"
 
 
-          response_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::CoreToClient, message.session_id)
-          @sender.send(request)
+        response_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::CoreToClient, message.session_id)
+        @sender.send(request)
         begin
           response_subscriber.get_response
         rescue Exception => e
@@ -59,6 +59,12 @@ module Korwe
 
         data_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::Data, message.session_id)
         response_message = make_request(message)
+        if response_message.error_code
+          error = CoreError.new
+          error.error_code = response_message.error_code
+          error.error_message = response_message.error_message
+          raise error
+        end
         begin
           data_message = data_subscriber.get_response
 

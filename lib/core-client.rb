@@ -1,6 +1,7 @@
 require "core-client-ruby/version"
 require 'builder'
 require 'qpid_messaging'
+require File.expand_path('../error/core_error',__FILE__)
 require File.expand_path('../messages/core_message',__FILE__)
 require File.expand_path('../messages/core_response',__FILE__)
 Dir[File.expand_path('../messages/*',__FILE__)].each {|f| require f}
