@@ -117,7 +117,7 @@ module Korwe
           #process function's parameters
           function_definition['parameters'].each do |param_def|
             method.parameters[param_def['name']] = param_def['type']
-          end
+          end if function_definition['parameters']
 
           service.method_list[method.name] = method
         end

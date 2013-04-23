@@ -168,15 +168,19 @@ module Korwe
                   instance = Hash.new
                   type.type_properties.each do |property_name, property_type|
                     property_node = root.at_xpath("./#{property_name}")
-                    property_node.node_name=@api_definition.types[property_type].name
-                    instance[property_name] = deserialize_data(property_node)
+                    unless property_node.nil?
+                      property_node.node_name=@api_definition.types[property_type].name
+                      instance[property_name] = deserialize_data(property_node)
+                    end
                   end
                 else
                   instance = type.klass.new
                   type.type_properties.each do |property_name, property_type|
                     property_node = root.at_xpath("./#{property_name}")
-                    property_node.node_name=@api_definition.types[property_type].name
-                    instance.send("#{property_name}=", deserialize_data(property_node))
+                    unless property_node.nil?
+                      property_node.node_name=@api_definition.types[property_type].name
+                      instance.send("#{property_name}=", deserialize_data(property_node))
+                    end
                   end
                 end
 
