@@ -1,6 +1,5 @@
 require 'builder'
 require 'nokogiri'
-require 'time'
 
 module Korwe
   module TheCore
@@ -21,7 +20,7 @@ module Korwe
           b.guid(message.guid)
           b.choreography(message.choreography)
           b.description(message.description)
-          b.timeStamp(message.timestamp.strftime(TIMESTAMP_FORMAT))
+          b.timeStamp(message.timestamp.utc.strftime(TIMESTAMP_FORMAT))
 
           case message.message_type
             when :ServiceRequest
@@ -157,7 +156,7 @@ module Korwe
               return root.text.to_i if type.klass == Integer
               return root.text.to_f if type.klass == Float
               return root.text if type.klass == String
-              return root.text if DateTime.parse(root.text) == DateTime
+              return Time.parse(root.text) if type.klass == Time
               return nil
             else #its defined by the external api
               type = @api_definition.types[root.node_name]

@@ -54,7 +54,7 @@ module Korwe
     class ApiDefinition
       PRIMITIVE_TYPES = {'Integer' => PrimitiveTypeDefinition.new('int', Integer), 'String'=> PrimitiveTypeDefinition.new('string', String),
                          'Long'=>PrimitiveTypeDefinition.new('long', Integer), 'Float'=>PrimitiveTypeDefinition.new('float', Float), 'Boolean'=>TypeDefinition.new('boolean'),
-                         'Double'=>PrimitiveTypeDefinition.new('double', Float), 'Date'=>PrimitiveTypeDefinition.new('date', DateTime)}
+                         'Double'=>PrimitiveTypeDefinition.new('double', Float), 'Time'=>PrimitiveTypeDefinition.new('time', Time)}
 
       GENERIC_TYPES = {'Map'=>GenericTypeDefinition.new('map'), 'List'=>GenericTypeDefinition.new('list'), 'Set'=>GenericTypeDefinition.new('set')}
 

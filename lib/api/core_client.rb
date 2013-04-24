@@ -59,7 +59,7 @@ module Korwe
 
         data_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::Data, message.session_id)
         response_message = make_request(message)
-        if response_message.error_code
+        unless response_message.error_code.empty?
           error = CoreError.new
           error.error_code = response_message.error_code
           error.error_message = response_message.error_message
