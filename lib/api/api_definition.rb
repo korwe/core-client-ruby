@@ -1,11 +1,15 @@
 module Korwe
   module TheCore
+    class TypeDefinitionAttribute
+      attr_accessor :name, :type, :type_parameters
+    end
+
     class TypeDefinition
-      attr_accessor :name,  :type_properties, :inherits_from
+      attr_accessor :name,  :type_attributes, :inherits_from
 
       def initialize(name)
         self.name=name
-        self.type_properties=Hash.new
+        self.type_attributes=Hash.new
       end
     end
 
@@ -89,8 +93,16 @@ module Korwe
         type = ExternalTypeDefinition.new(yaml['name'], const)
         yaml['attributes'].each do |attribute_definition|
           type_parameter_offset = attribute_definition['type'].index('<')
-          #TODO: Do something with generic type parameters
-          type.type_properties[attribute_definition['name']] = type_parameter_offset.nil? ? attribute_definition['type'].strip : attribute_definition['type'].slice(0,type_parameter_offset).strip
+          attribute = TypeDefinitionAttribute.new
+          attribute.name = attribute_definition['name']
+
+          unless type_parameter_offset.nil?
+            attribute.type = attribute_definition['type'].slice(0,type_parameter_offset).strip
+            attribute.type_parameters = attribute_definition['type'].slice((type_parameter_offset+1)..-2).split(',').collect{|tp| tp.strip}
+          else
+            attribute.type = attribute_definition['type'].strip
+          end
+          type.type_attributes[attribute.name] = attribute
         end if yaml['attributes']
 
         type.inherits_from=yaml['inherits_from']
@@ -137,7 +149,7 @@ module Korwe
               parent_type = types[type_def.inherits_from]
               proc.call(parent_type)
               #now merge
-              type_def.type_properties.merge! parent_type.type_properties
+              type_def.type_attributes.merge! parent_type.type_attributes
             end
           end
         end

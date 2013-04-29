@@ -59,26 +59,28 @@ module Korwe
 
         data_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::Data, message.session_id)
         response_message = make_request(message)
-        unless response_message.error_code.empty?
+        if response_message.error_code.empty?
+          begin
+            data_message = data_subscriber.get_response
+
+            class << response_message
+              attr_accessor :data
+            end
+            response_message.data = data_message.data
+            response_message
+          rescue Exception => e
+            puts "Error retreiving message from server: #{e}"
+            raise e
+          ensure
+            data_subscriber.close
+          end
+        else
           error = CoreError.new
           error.error_code = response_message.error_code
           error.error_message = response_message.error_message
           raise error
         end
-        begin
-          data_message = data_subscriber.get_response
 
-          class << response_message
-            attr_accessor :data
-          end
-          response_message.data = data_message.data
-          response_message
-        rescue Exception => e
-          puts "Error retreiving message from server: #{e}"
-          raise e
-        ensure
-          data_subscriber.close
-        end
       end
     end
   end

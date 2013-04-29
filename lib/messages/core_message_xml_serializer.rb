@@ -1,5 +1,6 @@
 require 'builder'
 require 'nokogiri'
+require 'rgl/adjacency'
 
 module Korwe
   module TheCore
@@ -64,7 +65,7 @@ module Korwe
             set_response_fields(root, core_message)
           when :DataResponse
             data_text = node_value(root, 'data')
-            data = data_text.nil? ? nil : deserialize_data(Nokogiri::XML(data_text, nil, 'UTF-8', Nokogiri::XML::ParseOptions::NOBLANKS).child)
+            data = data_text.nil? ? nil : deserialize_data(Nokogiri::XML(data_text, nil, 'UTF-8', Nokogiri::XML::ParseOptions::NOBLANKS).child, nil, RGL::DirectedAdjacencyGraph.new, [])
             core_message = DataResponse.new(session_id, guid, data)
             set_response_fields(root, core_message)
         end
@@ -103,82 +104,101 @@ module Korwe
             builder.parameter {
               builder.name param_name
               type_builder = Builder::XmlMarkup.new
-              builder.value serialize_type(type_builder, function_definition.parameters[param_name], param_value).target!
+              builder.value serialize_type(type_builder, nil, function_definition.parameters[param_name], param_value).target!
             }
           end
         }
       end
 
-      def serialize_type(builder, type_name, value)
+      def serialize_type(builder, property_definition, type_name, value)
         type = @api_definition.types[type_name]
+
+        tag_name = property_definition.nil? ? type.name : property_definition.name
+
         if ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==type_name}
-          builder.__send__ type.name, value.to_s
+          builder.__send__ tag_name, value.to_s
         else
-          builder.tag!(type.name) {
+          if ['list', 'set'].any? {|k| k==type.name}
+            builder.tag!(tag_name) {
+
+            }
+            unless property_definition.nil?
+              value.each do |o|
+                serialize_type builder, nil, property_definition.type_parameters.first, o
+              end
+            else
+              #TODO: Handle non property lists - and lists without generic parameter type definitions
+              raise NotImplementedError
+            end
+          elsif 'map' == type.name
+            #TODO: Handle maps
+            raise NotImplementedError
+          else
             #process each property of the type
-            type.type_properties.each do |prop_name, prop_type|
+            type.type_attributes.each do |prop_name, prop_property_definition|
               prop_value = value.send(prop_name)
               if prop_value
-                if ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==prop_type} #If primitive
-                  builder.__send__ prop_name, prop_value.to_s
-                else
-                  serialize_type builder, prop_type, prop_value
-                end
+                serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value
               end
             end
-          }
+          end
         end
         builder
       end
 
-      def deserialize_data(root)
-        return nil unless root
+      def deserialize_data(node, parent_id, graph, objects_array)
+        return nil unless node
 
-        case root.node_name
+        return get_object_from_reference(node.get_attribute('reference').sub('../',''), graph, objects_array, parent_id) if node.has_attribute? 'reference'
+        case node.node_name
           when 'map'
             map  = Hash.new
-            root.child.each do |entry|
-              map[deserialize_data(entry.children.first)] = deserialize_data(entry.children.last)
+            object_id = add_object_to_graph(map, parent_id, graph, objects_array)
+            node.child.each do |entry|
+              map[deserialize_data(entry.children.first, object_id, graph, objects_array)] = deserialize_data(entry.children.last, object_id, graph, objects_array)
             end
             return map
           when 'list', 'set'
             list = Array.new
-            root.children.each do |item|
-              list << deserialize_data(item)
+            node.children.each do |item|
+              object_id = add_object_to_graph(list, parent_id, graph, objects_array)
+              list << deserialize_data(item, object_id, graph, objects_array)
             end
             return list
           when 'boolean'
-            return root.text == 'true'
+            return node.text == 'true'
           else
-            type = ApiDefinition::PRIMITIVE_TYPES.values.detect {|pt| pt.name == root.node_name}
+            type = ApiDefinition::PRIMITIVE_TYPES.values.detect {|pt| pt.name == node.node_name}
             if type #if it's primitive
               #for some reason case is being ignored
-              return root.text.to_i if type.klass == Integer
-              return root.text.to_f if type.klass == Float
-              return root.text if type.klass == String
-              return Time.parse(root.text) if type.klass == Time
+              return node.text.to_i if type.klass == Integer
+              return node.text.to_f if type.klass == Float
+              return node.text if type.klass == String
+              return Time.parse(node.text) if type.klass == Time
               return nil
             else #its defined by the external api
-              type = @api_definition.types[root.node_name]
+              type = @api_definition.types[node.node_name]
               unless type #Not defined at all, TODO: Perhaps raise error
                 return nil
               else
                 if type.klass.nil?
                   instance = Hash.new
-                  type.type_properties.each do |property_name, property_type|
-                    property_node = root.at_xpath("./#{property_name}")
+                  object_id = add_object_to_graph(instance, parent_id, graph, objects_array)
+                  type.type_attributes.each do |property_name, property_definition|
+                    property_node = node.at_xpath("./#{property_name}")
                     unless property_node.nil?
-                      property_node.node_name=@api_definition.types[property_type].name
-                      instance[property_name] = deserialize_data(property_node)
+                      property_node.node_name=@api_definition.types[property_definition.type].name
+                      instance[property_name] = deserialize_data(property_node, object_id, graph, objects_array)
                     end
                   end
                 else
                   instance = type.klass.new
-                  type.type_properties.each do |property_name, property_type|
-                    property_node = root.at_xpath("./#{property_name}")
+                  object_id = add_object_to_graph(instance, parent_id, graph, objects_array)
+                  type.type_attributes.each do |property_name, property_definition|
+                    property_node = node.at_xpath("./#{property_name}")
                     unless property_node.nil?
-                      property_node.node_name=@api_definition.types[property_type].name
-                      instance.send("#{property_name}=", deserialize_data(property_node))
+                      property_node.node_name=@api_definition.types[property_definition.type].name
+                      instance.send("#{property_name}=", deserialize_data(property_node, object_id, graph, objects_array))
                     end
                   end
                 end
@@ -187,6 +207,42 @@ module Korwe
               end
             end
         end
+      end
+
+      def get_object_from_reference(reference, graph, object_array, current_id)
+        return object_array[current_id] if reference.empty?
+        paths = reference.split('/')
+        current_object = nil
+        paths_length = paths.length-1
+        paths.each_with_index do |path,i|
+          if path == '..'
+            edge = graph.edges.detect { |e| e.source == current_id }
+            current_id = edge.target if edge
+            current_object = object_array[current_id] if(paths_length == i)
+          elsif path.index(/^[A-Z]/) or path.include?('.')
+            current_object ||= object_array[current_id]
+            index_scan = path.scan(/\[(\d+)\]/)
+            if index_scan.empty?
+              index = 0
+            else
+              index = index_scan.first.first.to_i-1 #XPath starts index at 1
+            end
+            current_object = current_object[index]
+          else
+            current_object ||= object_array[current_id]
+            current_object = current_object.class == Hash ? current_object[path] : current_object.send(path)
+          end
+        end
+        current_object
+      end
+
+      def add_object_to_graph(object, parent_id, graph, object_array)
+
+        object_id = object_array.length
+        object_array << object
+        graph.add_vertex(object_id)
+        graph.add_edge(object_id, parent_id) if parent_id
+        object_id
       end
 
     end
