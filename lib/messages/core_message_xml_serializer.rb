@@ -120,27 +120,29 @@ module Korwe
         else
           if ['list', 'set'].any? {|k| k==type.name}
             builder.tag!(tag_name) {
-
-            }
-            unless property_definition.nil?
-              value.each do |o|
-                serialize_type builder, nil, property_definition.type_parameters.first, o
+              unless property_definition.nil?
+                value.each do |o|
+                  serialize_type builder, nil, property_definition.type_parameters.first, o
+                end
+              else
+                #TODO: Handle non property lists - and lists without generic parameter type definitions
+                raise NotImplementedError
               end
-            else
-              #TODO: Handle non property lists - and lists without generic parameter type definitions
-              raise NotImplementedError
-            end
+            }
           elsif 'map' == type.name
             #TODO: Handle maps
             raise NotImplementedError
           else
             #process each property of the type
-            type.type_attributes.each do |prop_name, prop_property_definition|
-              prop_value = value.send(prop_name)
-              if prop_value
-                serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value
+            builder.tag!(tag_name) {
+              type.type_attributes.each do |prop_name, prop_property_definition|
+                prop_value = value.send(prop_name)
+                if prop_value
+                  serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value
+                end
               end
-            end
+
+            }
           end
         end
         builder
