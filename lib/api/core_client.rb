@@ -57,10 +57,10 @@ module Korwe
       def make_data_request(message)
         return puts("Error sending message: Requires session id") unless message.session_id
 
-        data_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::Data, message.session_id)
-        response_message = make_request(message)
-        if response_message.error_code.empty?
-          begin
+        begin
+          data_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::Data, message.session_id)
+          response_message = make_request(message)
+          if response_message.error_code.empty?
             data_message = data_subscriber.get_response
 
             class << response_message
@@ -68,17 +68,17 @@ module Korwe
             end
             response_message.data = data_message.data
             response_message
-          rescue Exception => e
-            puts "Error retreiving message from server: #{e}"
-            raise e
-          ensure
-            data_subscriber.close
+          else
+            error = CoreError.new
+            error.error_code = response_message.error_code
+            error.error_message = response_message.error_message
+            raise error
           end
-        else
-          error = CoreError.new
-          error.error_code = response_message.error_code
-          error.error_message = response_message.error_message
-          raise error
+        rescue Exception => e
+          puts "Error retreiving data message from server: #{e}"
+          raise e
+        ensure
+          data_subscriber.close
         end
 
       end

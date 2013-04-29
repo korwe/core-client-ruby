@@ -23,7 +23,7 @@ module Korwe
       end
 
       def close
-        @receiver.close
+        @receiver.close unless @receiver.closed?
       end
 
       def handle_error_response(message)
