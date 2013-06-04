@@ -188,7 +188,11 @@ module Korwe
             else #its defined by the external api
               type = @api_definition.types[node.node_name]
               unless type
-                raise Com::Korwe::NotImplementedError(node.node_name)
+                if node.node_name == "null"
+                  return nil
+                else
+                  raise Com::Korwe::NotImplementedError(node.node_name)
+                end
               else
                 if type.klass.nil?
                   instance = Hash.new
