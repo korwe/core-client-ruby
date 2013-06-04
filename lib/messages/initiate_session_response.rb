@@ -1,3 +1,4 @@
+require File.expand_path('../core_response', __FILE__)
 module Korwe
   module TheCore
     class InitiateSessionResponse < CoreResponse

@@ -1,3 +1,4 @@
+require File.expand_path('../core_message', __FILE__)
 module Korwe
   module TheCore
     class CoreResponse < CoreMessage

@@ -1,4 +1,5 @@
 require 'securerandom'
+require File.expand_path('../core_message', __FILE__)
 module Korwe
   module TheCore
     class CoreRequest < CoreMessage
