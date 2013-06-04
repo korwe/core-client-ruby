@@ -60,7 +60,7 @@ module Korwe
                          'Long'=>PrimitiveTypeDefinition.new('long', Integer), 'Float'=>PrimitiveTypeDefinition.new('float', Float), 'Boolean'=>TypeDefinition.new('boolean'),
                          'Double'=>PrimitiveTypeDefinition.new('double', Float), 'Time'=>PrimitiveTypeDefinition.new('time', Time)}
 
-      GENERIC_TYPES = {'Map'=>GenericTypeDefinition.new('map'), 'List'=>GenericTypeDefinition.new('list'), 'Set'=>GenericTypeDefinition.new('set')}
+      BASIC_GENERIC_TYPES = {'Map'=>GenericTypeDefinition.new('map'), 'List'=>GenericTypeDefinition.new('list'), 'Set'=>GenericTypeDefinition.new('set')}
 
       attr_accessor :types, :services
       def initialize(api_directory)
@@ -69,7 +69,7 @@ module Korwe
 
         initialize_types api_directory + File::SEPARATOR + "types"
         self.types.merge! PRIMITIVE_TYPES
-        self.types.merge! GENERIC_TYPES
+        self.types.merge! BASIC_GENERIC_TYPES
         initialize_services api_directory + File::SEPARATOR + "services"
         #Do this last so that we don't need to manage dependency loading - performance hit, but 1 time only
         initialize_inheritance
@@ -92,16 +92,7 @@ module Korwe
         end
         type = ExternalTypeDefinition.new(yaml['name'], const)
         yaml['attributes'].each do |attribute_definition|
-          type_parameter_offset = attribute_definition['type'].index('<')
-          attribute = TypeDefinitionAttribute.new
-          attribute.name = attribute_definition['name']
-
-          unless type_parameter_offset.nil?
-            attribute.type = attribute_definition['type'].slice(0,type_parameter_offset).strip
-            attribute.type_parameters = attribute_definition['type'].slice((type_parameter_offset+1)..-2).split(',').collect{|tp| tp.strip}
-          else
-            attribute.type = attribute_definition['type'].strip
-          end
+          attribute = attr_def_to_type_def_attr(attribute_definition['name'], attribute_definition['type'])
           type.type_attributes[attribute.name] = attribute
         end if yaml['attributes']
 
@@ -124,11 +115,18 @@ module Korwe
         yaml['functions'].each do |function_definition|
           method = ServiceMethod.new(function_definition['name'])
           method.description= function_definition['description']
+
           method.return_type= function_definition['return_type']
+
+          unless(function_definition['return_type'].nil?)
+            method.return_type= function_definition['return_type']
+            define_type_reference(method.return_type)
+          end
 
           #process function's parameters
           function_definition['parameters'].each do |param_def|
             method.parameters[param_def['name']] = param_def['type']
+            define_type_reference(param_def['type'])
           end if function_definition['parameters']
 
           service.method_list[method.name] = method
@@ -156,6 +154,43 @@ module Korwe
 
         self.types.values.each do |type_definition|
           process_inheritance.call(type_definition, process_inheritance)
+        end
+      end
+
+      def attr_def_to_type_def_attr(attr_name, type_def_name)
+
+        attribute = TypeDefinitionAttribute.new
+        attribute.name = attr_name
+        type_parameter_offset = type_def_name.index('<')
+
+        unless type_parameter_offset.nil?
+          attribute.type = type_def_name.slice(0,type_parameter_offset).strip
+          attribute.type_parameters = type_def_name.slice((type_parameter_offset+1)..-2).split(',').collect{|tp| tp.strip}
+        else
+          attribute.type = type_def_name.strip
+        end
+        attribute
+      end
+
+
+      def define_type_reference(type_def_name)
+        if self.types[type_def_name].nil?
+          type_parameter_offset = type_def_name.index('<')
+
+          unless type_parameter_offset.nil?
+            class_name = type_def_name.slice(0,type_parameter_offset).strip
+            #if basic generic
+            if BASIC_GENERIC_TYPES.has_key?(class_name)
+              type = GenericTypeDefinition.new(BASIC_GENERIC_TYPES[class_name].name)
+            else
+              #TODO: Handle custom generics
+              raise NotImplementedError
+            end
+            type.type_parameters = type_def_name.slice((type_parameter_offset+1)..-2).split(',').collect{|tp| tp.strip}
+          else
+            type = GenericTypeDefinition.new(type_def_name.strip)
+          end
+          self.types[type_def_name] = type
         end
       end
     end

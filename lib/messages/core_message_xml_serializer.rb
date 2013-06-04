@@ -130,8 +130,15 @@ module Korwe
               end
             }
           elsif 'map' == type.name
-            #TODO: Handle maps
-            raise NotImplementedError
+            property_definition = type if property_definition.nil? #TODO: FIX Hack
+            builder.tag!(tag_name){
+              value.each do |k,v|
+                builder.tag!('entry'){
+                  serialize_type builder, nil, property_definition.type_parameters.first, k
+                  serialize_type builder, nil, property_definition.type_parameters.last, v
+                }
+              end
+            }
           else
             #process each property of the type
             builder.tag!(tag_name) {
