@@ -180,8 +180,8 @@ module Korwe
               return nil
             else #its defined by the external api
               type = @api_definition.types[node.node_name]
-              unless type #Not defined at all, TODO: Perhaps raise error
-                return nil
+              unless type
+                raise Com::Korwe::NotImplementedError(node.node_name)
               else
                 if type.klass.nil?
                   instance = Hash.new
@@ -199,7 +199,12 @@ module Korwe
                   type.type_attributes.each do |property_name, property_definition|
                     property_node = node.at_xpath("./#{property_name}")
                     unless property_node.nil?
-                      property_node.node_name=@api_definition.types[property_definition.type].name
+
+                      if property_definition.type == 'Object' and property_node.has_attribute?('class')
+                        property_node.node_name = property_node.get_attribute('class')
+                      else
+                        property_node.node_name=@api_definition.types[property_definition.type].name
+                      end
                       instance.send("#{property_name}=", deserialize_data(property_node, object_id, graph, objects_array))
                     end
                   end

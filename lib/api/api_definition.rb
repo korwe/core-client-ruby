@@ -56,7 +56,7 @@ module Korwe
     end
 
     class ApiDefinition
-      PRIMITIVE_TYPES = {'Integer' => PrimitiveTypeDefinition.new('int', Integer), 'String'=> PrimitiveTypeDefinition.new('string', String),
+      PRIMITIVE_TYPES = {'Object'=>PrimitiveTypeDefinition.new('object',nil), 'Integer' => PrimitiveTypeDefinition.new('int', Integer), 'String'=> PrimitiveTypeDefinition.new('string', String),
                          'Long'=>PrimitiveTypeDefinition.new('long', Integer), 'Float'=>PrimitiveTypeDefinition.new('float', Float), 'Boolean'=>TypeDefinition.new('boolean'),
                          'Double'=>PrimitiveTypeDefinition.new('double', Float), 'Time'=>PrimitiveTypeDefinition.new('time', Time)}
 

@@ -69,10 +69,7 @@ module Korwe
             response_message.data = data_message.data
             response_message
           else
-            error = CoreError.new
-            error.error_code = response_message.error_code
-            error.error_message = response_message.error_message
-            raise error
+            raise CoreError.new(response_message.error_code, response_message.error_message)
           end
         rescue Exception => e
           puts "Error retreiving data message from server: #{e}"
