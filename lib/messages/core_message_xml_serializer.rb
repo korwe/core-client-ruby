@@ -36,6 +36,7 @@ module Korwe
               b.data(message.data)
           end
         end
+        builder.target!
       end
 
       def deserialize(message_string)
@@ -104,16 +105,26 @@ module Korwe
             builder.parameter {
               builder.name param_name
               type_builder = Builder::XmlMarkup.new
-              builder.value serialize_type(type_builder, nil, function_definition.parameters[param_name], param_value).target!
+              builder.value serialize_type(type_builder, nil, function_definition.parameters[param_name], param_value, "", {})
             }
           end
         }
       end
 
-      def serialize_type(builder, property_definition, type_name, value)
+      def serialize_type(builder, property_definition, type_name, value, parent_path, ref_map)
         type = @api_definition.types[type_name]
 
         tag_name = property_definition.nil? ? type.name : property_definition.name
+        reference = object_reference_path(ref_map, value)
+
+        #ignore Fixnums and only add reference to ref_map if reference for object doesn't already exist
+        unless value.class.eql? Fixnum
+          if reference.nil?
+            current_path = add_object_to_reference_map(ref_map, "#{parent_path}/#{tag_name}", value)
+          else #create element with reference and return
+            return builder.tag!(tag_name, :reference=>reference)
+          end
+        end
 
         if ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==type_name}
           builder.__send__ tag_name, value.to_s
@@ -122,7 +133,7 @@ module Korwe
             builder.tag!(tag_name) {
               unless property_definition.nil?
                 value.each do |o|
-                  serialize_type builder, nil, property_definition.type_parameters.first, o
+                  serialize_type builder, nil, property_definition.type_parameters.first, o, current_path, ref_map
                 end
               else
                 #TODO: Handle non property lists - and lists without generic parameter type definitions
@@ -133,9 +144,10 @@ module Korwe
             property_definition = type if property_definition.nil? #TODO: FIX Hack
             builder.tag!(tag_name){
               value.each do |k,v|
+                current_path = check_path(ref_map, "#{current_path}/entry")
                 builder.tag!('entry'){
-                  serialize_type builder, nil, property_definition.type_parameters.first, k
-                  serialize_type builder, nil, property_definition.type_parameters.last, v
+                  serialize_type builder, nil, property_definition.type_parameters.first, k, current_path, ref_map
+                  serialize_type builder, nil, property_definition.type_parameters.last, v, current_path, ref_map
                 }
               end
             }
@@ -145,14 +157,14 @@ module Korwe
               type.type_attributes.each do |prop_name, prop_property_definition|
                 prop_value = value.send(prop_name)
                 if prop_value
-                  serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value
+                  serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value, current_path, ref_map
                 end
               end
 
             }
           end
         end
-        builder
+        builder.target!
       end
 
       def deserialize_data(node, parent_id, graph, objects_array)
@@ -227,6 +239,42 @@ module Korwe
         end
       end
 
+      #
+      # Serialization
+      #
+
+      def object_reference_path(ref_map, reference_object)
+        return nil if reference_object.nil? #no reference_object therefore no object reference
+
+        reference = ref_map[reference_object.object_id]
+
+        #Currently we only support absolute references - TODO: Implement relative references
+
+
+      end
+
+      def add_object_to_reference_map(ref_map, path, object)
+        return if path.nil?
+        #return path
+        ref_map[object.object_id] = check_path(ref_map, path)
+      end
+
+      def check_path(ref_map, path)
+        paths = ref_map.values
+        if paths.any?{|v| v == path}
+          r = Regexp.new("^#{path}")
+          paths.reject! {|p| (p =~ r) == nil}
+          #Handle List/Set .../<type>[<x>] (which includes maps as they are arrays of entries- .../entry[<x>]/<type> )
+          "#{path}[#{paths.size+1}]"
+        else
+          path
+        end
+      end
+
+      #
+      # Deserialization
+      #
+
       def get_object_from_reference(reference, graph, object_array, current_id)
         return object_array[current_id] if reference.empty?
         paths = reference.split('/')
@@ -243,7 +291,7 @@ module Korwe
             if index_scan.empty?
               index = 0
             else
-              index = index_scan.first.first.to_i-1 #XPath starts index at 1
+              index = index_scan.first.first.to_i-1 #XPath starts index at 1, value
             end
             current_object = current_object[index]
           else
