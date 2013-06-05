@@ -127,7 +127,11 @@ module Korwe
         end
 
         if ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==type_name}
-          builder.__send__ tag_name, value.to_s
+          if 'time' == type.name
+            builder.__send__ tag_name, value.strftime(TIMESTAMP_FORMAT)
+          else
+            builder.__send__ tag_name, value.to_s
+          end
         else
           if ['list', 'set'].any? {|k| k==type.name}
             builder.tag!(tag_name) {
@@ -262,10 +266,10 @@ module Korwe
       def check_path(ref_map, path)
         paths = ref_map.values
         if paths.any?{|v| v == path}
-          r = Regexp.new("^#{path}")
+          r = Regexp.new("^#{path}\\[\\d+\\]$")
           paths.reject! {|p| (p =~ r) == nil}
           #Handle List/Set .../<type>[<x>] (which includes maps as they are arrays of entries- .../entry[<x>]/<type> )
-          "#{path}[#{paths.size+1}]"
+          "#{path}[#{paths.size+2}]"
         else
           path
         end
