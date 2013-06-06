@@ -105,13 +105,14 @@ module Korwe
             builder.parameter {
               builder.name param_name
               type_builder = Builder::XmlMarkup.new
-              builder.value serialize_type(type_builder, nil, function_definition.parameters[param_name], param_value, "", {})
+              type_name = function_definition.parameters[param_name]
+              builder.value serialize_type(type_builder, nil, type_name, param_value, ["/#{@api_definition.types[type_name].name}"], {})
             }
           end
         }
       end
 
-      def serialize_type(builder, property_definition, type_name, value, parent_path, ref_map)
+      def serialize_type(builder, property_definition, type_name, value, path_stack, ref_map)
         type = @api_definition.types[type_name]
 
         tag_name = property_definition.nil? ? type.name : property_definition.name
@@ -120,7 +121,7 @@ module Korwe
         #ignore Fixnums and only add reference to ref_map if reference for object doesn't already exist
         unless value.class.eql? Fixnum
           if reference.nil?
-            current_path = add_object_to_reference_map(ref_map, "#{parent_path}/#{tag_name}", value)
+            add_object_to_reference_map(ref_map, path_stack, value)
           else #create element with reference and return
             return builder.tag!(tag_name, :reference=>reference)
           end
@@ -136,8 +137,9 @@ module Korwe
           if ['list', 'set'].any? {|k| k==type.name}
             builder.tag!(tag_name) {
               unless property_definition.nil?
-                value.each do |o|
-                  serialize_type builder, nil, property_definition.type_parameters.first, o, current_path, ref_map
+                prop_tag_name = @api_definition.types[property_definition.type_parameters.first].name
+                value.each_with_index do |o,i|
+                  serialize_type builder, nil, property_definition.type_parameters.first, o, (path_stack +[prop_tag_name+ (i==0? '': "[#{i+1}]")]), ref_map
                 end
               else
                 #TODO: Handle non property lists - and lists without generic parameter type definitions
@@ -147,12 +149,16 @@ module Korwe
           elsif 'map' == type.name
             property_definition = type if property_definition.nil? #TODO: FIX Hack
             builder.tag!(tag_name){
-              value.each do |k,v|
-                current_path = check_path(ref_map, "#{current_path}/entry")
+              value.each_with_index do |kv,i|
+                path_stack << 'entry'+ (i==0? '': "[#{i+1}]")
+
+                prop_key_tag_name = @api_definition.types[property_definition.type_parameters.type_parameters.first].name
+                prop_val_tag_name = @api_definition.types[property_definition.type_parameters.type_parameters.first].name
                 builder.tag!('entry'){
-                  serialize_type builder, nil, property_definition.type_parameters.first, k, current_path, ref_map
-                  serialize_type builder, nil, property_definition.type_parameters.last, v, current_path, ref_map
+                  serialize_type builder, nil, property_definition.type_parameters.first, k, (path_stack+[prop_key_tag_name]), ref_map
+                  serialize_type builder, nil, property_definition.type_parameters.last, v, (path_stack+[prop_val_tag_name]), ref_map
                 }
+                path_stack.pop
               end
             }
           else
@@ -161,7 +167,7 @@ module Korwe
               type.type_attributes.each do |prop_name, prop_property_definition|
                 prop_value = value.send(prop_name)
                 if prop_value
-                  serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value, current_path, ref_map
+                  serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value, path_stack+[prop_name], ref_map
                 end
               end
 
@@ -260,19 +266,7 @@ module Korwe
       def add_object_to_reference_map(ref_map, path, object)
         return if path.nil?
         #return path
-        ref_map[object.object_id] = check_path(ref_map, path)
-      end
-
-      def check_path(ref_map, path)
-        paths = ref_map.values
-        if paths.any?{|v| v == path}
-          r = Regexp.new("^#{path}\\[\\d+\\]$")
-          paths.reject! {|p| (p =~ r) == nil}
-          #Handle List/Set .../<type>[<x>] (which includes maps as they are arrays of entries- .../entry[<x>]/<type> )
-          "#{path}[#{paths.size+2}]"
-        else
-          path
-        end
+        ref_map[object.object_id] = path.join('/')
       end
 
       #
