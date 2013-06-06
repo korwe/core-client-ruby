@@ -136,14 +136,10 @@ module Korwe
         else
           if ['list', 'set'].any? {|k| k==type.name}
             builder.tag!(tag_name) {
-              unless property_definition.nil?
-                prop_tag_name = @api_definition.types[property_definition.type_parameters.first].name
-                value.each_with_index do |o,i|
-                  serialize_type builder, nil, property_definition.type_parameters.first, o, (path_stack +[prop_tag_name+ (i==0? '': "[#{i+1}]")]), ref_map
-                end
-              else
-                #TODO: Handle non property lists - and lists without generic parameter type definitions
-                raise NotImplementedError
+              property_definition = type if property_definition.nil?
+              prop_tag_name = @api_definition.types[property_definition.type_parameters.first].name
+              value.each_with_index do |o,i|
+                serialize_type builder, nil, property_definition.type_parameters.first, o, (path_stack +[prop_tag_name+ (i==0? '': "[#{i+1}]")]), ref_map
               end
             }
           elsif 'map' == type.name
@@ -152,11 +148,11 @@ module Korwe
               value.each_with_index do |kv,i|
                 path_stack << 'entry'+ (i==0? '': "[#{i+1}]")
 
-                prop_key_tag_name = @api_definition.types[property_definition.type_parameters.type_parameters.first].name
-                prop_val_tag_name = @api_definition.types[property_definition.type_parameters.type_parameters.first].name
+                prop_key_tag_name = @api_definition.types[property_definition.type_parameters.first].name
+                prop_val_tag_name = @api_definition.types[property_definition.type_parameters.first].name
                 builder.tag!('entry'){
-                  serialize_type builder, nil, property_definition.type_parameters.first, k, (path_stack+[prop_key_tag_name]), ref_map
-                  serialize_type builder, nil, property_definition.type_parameters.last, v, (path_stack+[prop_val_tag_name]), ref_map
+                  serialize_type builder, nil, property_definition.type_parameters.first, kv[0], (path_stack+[prop_key_tag_name]), ref_map
+                  serialize_type builder, nil, property_definition.type_parameters.last, kv[1], (path_stack+[prop_val_tag_name]), ref_map
                 }
                 path_stack.pop
               end
