@@ -25,6 +25,7 @@ module Korwe
 
           case message.message_type
             when :ServiceRequest
+              b.location(message.location) if message.location
               serialize_request_function(b, message)
             when :InitiateSessionResponse, :KillSessionResponse
               add_response_elements(b, message)

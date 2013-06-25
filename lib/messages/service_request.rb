@@ -3,7 +3,7 @@ module Korwe
   module TheCore
     class ServiceRequest < CoreRequest
 
-      attr_accessor :function, :params
+      attr_accessor :function, :params, :location
 
       def initialize(session_id, function)
         super(session_id, :ServiceRequest)
