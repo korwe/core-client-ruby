@@ -145,7 +145,7 @@ module Korwe
             unless type_def.inherits_from.nil?
               #Depth first
               parent_type = types[type_def.inherits_from]
-              proc.call(parent_type)
+              proc.call(parent_type, proc)
               #now merge
               type_def.type_attributes.merge! parent_type.type_attributes
             end
