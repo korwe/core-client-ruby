@@ -160,14 +160,18 @@ module Korwe
             }
           else
             #process each property of the type
-            builder.tag!(tag_name) {
+            builder.tag!(tag_name, :class=> type.inherits_from.nil? ? nil : type.name) {
               type.type_attributes.each do |prop_name, prop_property_definition|
                 prop_value = value.send(prop_name)
                 if prop_value
-                  serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value, path_stack+[prop_name], ref_map
+                  prop_type = @api_definition.types[prop_property_definition.type]
+                  if ::Korwe::TheCore::GenericTypeDefinition == prop_type.class
+                    serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value, path_stack+[prop_name], ref_map
+                  else
+                    serialize_type builder, prop_property_definition, api_classname(prop_value.class), prop_value, path_stack+[prop_name], ref_map
+                  end
                 end
               end
-
             }
           end
         end
@@ -229,11 +233,12 @@ module Korwe
                   type.type_attributes.each do |property_name, property_definition|
                     property_node = node.at_xpath("./#{property_name}")
                     unless property_node.nil?
+                      property_type = @api_definition.types[property_definition.type]
 
-                      if property_definition.type == 'Object' and property_node.has_attribute?('class')
+                      if property_type.inherited and property_node.has_attribute?('class')
                         property_node.node_name = property_node.get_attribute('class')
                       else
-                        property_node.node_name=@api_definition.types[property_definition.type].name
+                        property_node.node_name=property_type.name
                       end
                       instance.send("#{property_name}=", deserialize_data(property_node, object_id, graph, objects_array))
                     end
@@ -304,6 +309,12 @@ module Korwe
         graph.add_vertex(object_id)
         graph.add_edge(object_id, parent_id) if parent_id
         object_id
+      end
+
+      def api_classname(klass)
+        klass_name_path = klass.to_s.split('::')
+        klass_name_path = klass_name_path[0..-2].collect(&:downcase) << klass_name_path.last
+        klass_name_path.join('.')
       end
 
     end

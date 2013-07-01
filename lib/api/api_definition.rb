@@ -5,7 +5,11 @@ module Korwe
     end
 
     class TypeDefinition
-      attr_accessor :name,  :type_attributes, :inherits_from
+      attr_accessor :name,  :type_attributes, :inherits_from, :inherited
+
+      def inherited?
+        self.inherited
+      end
 
       def initialize(name)
         self.name=name
@@ -58,8 +62,9 @@ module Korwe
     class ApiDefinition
       PRIMITIVE_TYPES = {'Object'=>PrimitiveTypeDefinition.new('object',nil), 'Integer' => PrimitiveTypeDefinition.new('int', Integer), 'String'=> PrimitiveTypeDefinition.new('string', String),
                          'Long'=>PrimitiveTypeDefinition.new('long', Integer), 'Float'=>PrimitiveTypeDefinition.new('float', Float), 'Boolean'=>TypeDefinition.new('boolean'),
+                         'TrueClass'=>TypeDefinition.new('boolean'), 'FalseClass'=>TypeDefinition.new('boolean'),
                          'Double'=>PrimitiveTypeDefinition.new('double', Float), 'Time'=>PrimitiveTypeDefinition.new('time', Time)}
-
+      PRIMITIVE_TYPES['Object'].inherited=true
       BASIC_GENERIC_TYPES = {'Map'=>GenericTypeDefinition.new('map'), 'List'=>GenericTypeDefinition.new('list'), 'Set'=>GenericTypeDefinition.new('set')}
 
       attr_accessor :types, :services
@@ -83,20 +88,19 @@ module Korwe
 
       def initialize_type(type_file)
         yaml = YAML::load_file(type_file)
-        constant_name = yaml['name'].split('.').collect{|ns| ns.slice(0,1).capitalize + ns.slice(1..-1)}.join("::")
-        const = nil
-        begin
-          const = eval("::#{constant_name}")
-        rescue NameError
-          puts "Warning: No class exists for #{constant_name}"
-        end
-        type = ExternalTypeDefinition.new(yaml['name'], const)
+
+        type = self.types[yaml['name']] || ExternalTypeDefinition.new(yaml['name'], api_type_constant(yaml['name']))
         yaml['attributes'].each do |attribute_definition|
           attribute = attr_def_to_type_def_attr(attribute_definition['name'], attribute_definition['type'])
           type.type_attributes[attribute.name] = attribute
         end if yaml['attributes']
 
         type.inherits_from=yaml['inherits_from']
+        if type.inherits_from
+          inherited_type = self.types[type.inherits_from] || ExternalTypeDefinition.new(type.inherits_from, api_type_constant(type.inherits_from))
+          inherited_type.inherited=true
+        end
+
         self.types[type.name] = type
       end
 
@@ -172,6 +176,16 @@ module Korwe
         attribute
       end
 
+      def api_type_constant(name)
+        constant_name = name.split('.').collect{|ns| ns.slice(0,1).capitalize + ns.slice(1..-1)}.join("::")
+        const = nil
+        begin
+          const = eval("::#{constant_name}")
+        rescue NameError
+          puts "Warning: No class exists for #{constant_name}"
+        end
+        const
+      end
 
       def define_type_reference(type_def_name)
         if self.types[type_def_name].nil?
