@@ -119,15 +119,6 @@ module Korwe
         tag_name = property_definition.nil? ? type.name : property_definition.name
         reference = object_reference_path(ref_map, value)
 
-        #ignore Fixnums and only add reference to ref_map if reference for object doesn't already exist
-        unless value.class.eql? Fixnum
-          if reference.nil?
-            add_object_to_reference_map(ref_map, path_stack, value)
-          else #create element with reference and return
-            return builder.tag!(tag_name, :reference=>reference)
-          end
-        end
-
         if ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==type_name}
           if 'time' == type.name
             builder.__send__ tag_name, value.strftime(TIMESTAMP_FORMAT)
@@ -135,6 +126,12 @@ module Korwe
             builder.__send__ tag_name, value.to_s
           end
         else
+          if reference.nil?
+            add_object_to_reference_map(ref_map, path_stack, value)
+          else #create element with reference and return
+            return builder.tag!(tag_name, :reference=>reference)
+          end
+
           if ['list', 'set'].any? {|k| k==type.name}
             builder.tag!(tag_name) {
               property_definition = type if property_definition.nil?
@@ -166,6 +163,8 @@ module Korwe
                 if prop_value
                   prop_type = @api_definition.types[prop_property_definition.type]
                   if ::Korwe::TheCore::GenericTypeDefinition == prop_type.class
+                    serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value, path_stack+[prop_name], ref_map
+                  elsif ::Korwe::TheCore::ApiDefinition::PRIMITIVE_TYPES.keys.any? {|k| k==prop_property_definition.type}
                     serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value, path_stack+[prop_name], ref_map
                   else
                     serialize_type builder, prop_property_definition, api_classname(prop_value.class), prop_value, path_stack+[prop_name], ref_map
