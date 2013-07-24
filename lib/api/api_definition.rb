@@ -97,7 +97,12 @@ module Korwe
 
         type.inherits_from=yaml['inherits_from']
         if type.inherits_from
-          inherited_type = self.types[type.inherits_from] || ExternalTypeDefinition.new(type.inherits_from, api_type_constant(type.inherits_from))
+          inherited_type = self.types[type.inherits_from]
+          if inherited_type.nil?
+            inherited_type = self.types[type.inherits_from] || ExternalTypeDefinition.new(type.inherits_from, api_type_constant(type.inherits_from))
+            self.types[inherited_type.name] = inherited_type
+          end
+
           inherited_type.inherited=true
         end
 
