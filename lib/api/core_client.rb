@@ -39,8 +39,11 @@ module Korwe
 
         request = Messaging::Message.new
         request.content = @serializer.serialize(message)
+        request['choreography'] = message.choreography
+        request['guid'] = message.guid
+        request['messageType'] = message.message_type
+        request['sessionId'] = message.session_id
         puts "SENDING: #{request.content}"
-
 
         response_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::CoreToClient, message.session_id)
         @sender.send(request)
