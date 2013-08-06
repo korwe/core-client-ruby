@@ -157,7 +157,9 @@ module Korwe
             }
           else
             #process each property of the type
-            builder.tag!(tag_name, :class=> type.inherits_from.nil? ? nil : type.name) {
+            attributes = {}
+            attributes[:class] = type.name unless type.inherits_from.nil?
+            builder.tag!(tag_name, attributes) {
               type.type_attributes.each do |prop_name, prop_property_definition|
                 prop_value = value.send(prop_name)
                 if prop_value
