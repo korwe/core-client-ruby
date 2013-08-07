@@ -22,5 +22,5 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'builder', '>=3.2.0'
   gem.add_dependency 'nokogiri', '>=1.5.9'
   gem.add_dependency 'rgl', '>=0.4.0'
-  gem.add_dependency 'qpid_messaging', '>=0.20.2'
+  gem.add_dependency 'qpid_messaging', '0.20.2'
 end
