@@ -155,22 +155,18 @@ module Korwe
                 path_stack.pop
               end
             }
-          else
-            #process each property of the type
+          else #process each property of the type
             attributes = {}
-            attributes[:class] = type.name unless type.inherits_from.nil?
+            #Change to concrete type, if current type is inherited
+            if type.inherited
+              type = @api_definition.types[api_classname(value.class)]
+              attributes[:class] = type.name
+            end
             builder.tag!(tag_name, attributes) {
-              type.type_attributes.each do |prop_name, prop_property_definition|
+              type.type_attributes.each do |prop_name, attribute_definition|
                 prop_value = value.send(prop_name)
                 if prop_value
-                  prop_type = @api_definition.types[prop_property_definition.type]
-                  if ::Korwe::TheCore::GenericTypeDefinition == prop_type.class
-                    serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value, path_stack+[prop_name], ref_map
-                  elsif ::Korwe::TheCore::ApiDefinition::PRIMITIVE_TYPES.keys.any? {|k| k==prop_property_definition.type}
-                    serialize_type builder, prop_property_definition, prop_property_definition.type, prop_value, path_stack+[prop_name], ref_map
-                  else
-                    serialize_type builder, prop_property_definition, api_classname(prop_value.class), prop_value, path_stack+[prop_name], ref_map
-                  end
+                  serialize_type builder, attribute_definition, attribute_definition.type, prop_value, path_stack+[prop_name], ref_map
                 end
               end
             }

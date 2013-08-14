@@ -172,11 +172,11 @@ module Korwe
         attribute.name = attr_name
         type_parameter_offset = type_def_name.index('<')
 
-        unless type_parameter_offset.nil?
+        if type_parameter_offset.nil?
+          attribute.type = type_def_name.strip
+        else
           attribute.type = type_def_name.slice(0,type_parameter_offset).strip
           attribute.type_parameters = type_def_name.slice((type_parameter_offset+1)..-2).split(',').collect{|tp| tp.strip}
-        else
-          attribute.type = type_def_name.strip
         end
         attribute
       end
@@ -196,7 +196,9 @@ module Korwe
         if self.types[type_def_name].nil?
           type_parameter_offset = type_def_name.index('<')
 
-          unless type_parameter_offset.nil?
+          if type_parameter_offset.nil?
+            type = GenericTypeDefinition.new(type_def_name.strip)
+          else
             class_name = type_def_name.slice(0,type_parameter_offset).strip
             #if basic generic
             if BASIC_GENERIC_TYPES.has_key?(class_name)
@@ -206,8 +208,6 @@ module Korwe
               raise NotImplementedError
             end
             type.type_parameters = type_def_name.slice((type_parameter_offset+1)..-2).split(',').collect{|tp| tp.strip}
-          else
-            type = GenericTypeDefinition.new(type_def_name.strip)
           end
           self.types[type_def_name] = type
         end
