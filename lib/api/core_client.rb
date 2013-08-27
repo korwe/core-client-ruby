@@ -10,9 +10,9 @@ module Korwe
         @data_cache = Hash.new
       end
 
-      def connect(api_definition_path)
+      def connect(core_config, api_definition_path)
         @serializer = CoreMessageXmlSerializer.new(api_definition_path)
-        @connection = Messaging::Connection.new
+        @connection = Messaging::Connection.new core_config
         @connection.open
         @session = @connection.create_session
         @sender = @session.create_sender(@sender_queue_definition.queue_name)
