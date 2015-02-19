@@ -120,7 +120,7 @@ module Korwe
         reference = object_reference_path(ref_map, value)
 
         if ApiDefinition::PRIMITIVE_TYPES.keys.any?{|k| k==type_name}
-          if 'time' == type.name
+          if 'DateTime' == type.name
             builder.__send__ tag_name, value.strftime(TIMESTAMP_FORMAT)
           else
             builder.__send__ tag_name, value.to_s
