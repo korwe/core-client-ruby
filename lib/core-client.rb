@@ -11,6 +11,14 @@ require File.expand_path('../api/api_definition', __FILE__)
 require File.expand_path('../api/core_client', __FILE__)
 
 
+module Korwe
+  module TheCore
+    conn = Qpid::Messaging::Connection.new :url => "some.random.messaging.address.to.create.MessageError"
+    conn.open
+  rescue MessagingError => e
+    puts "Warning: fix bypass"
+  end
+end
 module Core
   module Client
     module Ruby
