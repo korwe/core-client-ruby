@@ -2,7 +2,7 @@ require File.expand_path('../core_message', __FILE__)
 module Korwe
   module TheCore
     class CoreResponse < CoreMessage
-      attr_accessor :successful, :error_code, :error_message
+      attr_accessor :successful, :error_type, :error_code, :error_message
 
       def initialize(session_id, message_type, guid, successful)
         super(session_id, message_type)

@@ -19,6 +19,7 @@ module Korwe
           core_message
         else
           puts "No response from server"
+          raise CoreClientError.new('noResponse', 'There was no response from server')
         end
       end
 
@@ -28,6 +29,7 @@ module Korwe
 
       def handle_error_response(message)
         puts "Request was unsuccessful with error(#{message.error_code}): #{message.error_message}"
+        raise CoreError.from_error_type(message.error_type, message.error_code, message.error_message)
       end
     end
   end

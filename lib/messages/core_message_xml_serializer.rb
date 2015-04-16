@@ -82,12 +82,14 @@ module Korwe
       end
 
       def add_response_elements(builder, message)
+        builder.errorType(message.error_type)
         builder.errorCode(message.error_code)
         builder.errorMessage(message.error_message)
         builder.successful(message.successful ? '1' : '0')
       end
 
       def set_response_fields(node, core_message)
+        core_message.error_type = node_value(node, 'errorType')
         core_message.error_code = node_value(node, 'errorCode')
         core_message.error_message = node_value(node, 'errorMessage')
       end

@@ -49,38 +49,51 @@ module Korwe
         @sender.send(request)
         begin
           response_subscriber.get_response
-        rescue Exception => e
-          puts "Error retreiving message from server: #{e}"
-          raise e
+        rescue MessagingError => qme
+          handle_qpid_messaging_error qme
         ensure
           response_subscriber.close
         end
       end
 
       def make_data_request(message)
-        return puts("Error sending message: Requires session id") unless message.session_id
+        unless message.session_id
+          puts('Error sending message: Requires session id')
+          raise CoreClientError.new('session.required', 'A session is required')
+        end
 
         begin
           data_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::Data, message.session_id)
           response_message = make_request(message)
-          if response_message.error_code.empty?
-            data_message = data_subscriber.get_response
+          data_message = data_subscriber.get_response
 
-            class << response_message
-              attr_accessor :data
-            end
-            response_message.data = data_message.data
-            response_message
-          else
-            raise CoreError.new(response_message.error_code, response_message.error_message)
+          class << response_message
+            attr_accessor :data
           end
+          response_message.data = data_message.data
+          response_message
+        rescue CoreError => ce
+          raise ce
+        rescue MessagingError => qme
+          handle_qpid_messaging_error qme
         rescue Exception => e
           puts "Error retreiving data message from server: #{e}"
           raise e
         ensure
-          data_subscriber.close
+          data_subscriber.close if data_subscriber
         end
 
+      end
+
+      def handle_qpid_messaging_error qme
+        if qme.message.eql? 'No message to fetch'
+          raise CoreClientError.new('noResponse', 'There was no response from server')
+        elsif qme.message.start_with? 'resource-deleted'
+          raise CoreClientError.new('queue.deleted', 'Message queue was deleted')
+        else
+          puts "Messaging error >>> #{qme}"
+          raise CoreClientError.new('noResponse', 'Unknown messaging error')
+        end
       end
     end
   end
