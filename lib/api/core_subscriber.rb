@@ -29,7 +29,7 @@ module Korwe
 
       def handle_error_response(message)
         puts "Request was unsuccessful with error(#{message.error_code}): #{message.error_message}"
-        raise CoreError.from_error_type(message.error_type, message.error_code, message.error_message)
+        raise CoreError.from_error_type(message.error_type, message.error_code, message.error_message, message.error_vars)
       end
     end
   end

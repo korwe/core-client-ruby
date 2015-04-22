@@ -92,6 +92,15 @@ module Korwe
         core_message.error_type = node_value(node, 'errorType')
         core_message.error_code = node_value(node, 'errorCode')
         core_message.error_message = node_value(node, 'errorMessage')
+
+        error_vars_node = node.at_css('errorVars')
+        if error_vars_node and error_vars_node.children.length > 0
+          core_message.error_vars = []
+          error_vars_node.children.each do |error_var_node|
+            core_message.error_vars << error_var_node.text
+          end
+        end
+
       end
 
       def node_value(node, css)
