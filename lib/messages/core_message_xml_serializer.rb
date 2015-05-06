@@ -109,15 +109,21 @@ module Korwe
       end
 
       def serialize_request_function(builder, message)
-        #TODO: HANDLE FUNCTION ERRORS - i.e when supplying incorrect args for function
-        function_definition = @api_definition.services[message.choreography].method_list[message.function]
+        service_definition = @api_definition.services[message.choreography]
+        raise CoreClientError.new("api.service.undefined", nil, [message.choreography]) unless service_definition
+
+        function_definition = service_definition.method_list[message.function]
+        raise CoreClientError.new("api.service.function.undefined", nil, [message.choreography, message.function]) unless function_definition
+
         builder.function(function_definition.name)
         builder.parameters {
           message.params.each do |param_name,param_value|
+            type_name = function_definition.parameters[param_name]
+            raise CoreClientError.new("api.service.function.parameter.undefined") unless type_name
+
             builder.parameter {
               builder.name param_name
               type_builder = Builder::XmlMarkup.new
-              type_name = function_definition.parameters[param_name]
               builder.value serialize_type(type_builder, nil, type_name, param_value, ["/#{@api_definition.types[type_name].name}"], {})
             }
           end
