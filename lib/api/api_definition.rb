@@ -68,10 +68,13 @@ module Korwe
       PRIMITIVE_TYPES['Object'].inherited=true
       BASIC_GENERIC_TYPES = {'Map'=>GenericTypeDefinition.new('map'), 'List'=>GenericTypeDefinition.new('list'), 'Set'=>GenericTypeDefinition.new('set')}
 
-      attr_accessor :types, :services
+
+      attr_accessor :types, :services, :global_parameters
+
       def initialize(api_directory)
         self.types= Hash.new
         self.services= Hash.new
+        self.global_parameters = Hash.new #parameters that exist for all service methods
 
         initialize_types api_directory + File::SEPARATOR + "types"
         self.types.merge! PRIMITIVE_TYPES

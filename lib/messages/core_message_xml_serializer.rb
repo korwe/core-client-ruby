@@ -6,6 +6,8 @@ module Korwe
   module TheCore
     class CoreMessageXmlSerializer
 
+      attr_reader :api_definition
+
       TIMESTAMP_FORMAT = '%Y%m%dT%H%M%S.%L'
 
       def initialize(api_definition_path)
@@ -119,6 +121,8 @@ module Korwe
         builder.parameters {
           message.params.each do |param_name,param_value|
             type_name = function_definition.parameters[param_name]
+            type_name = @api_definition.global_parameters[param_name] if !type_name and @api_definition.global_parameters.key?(param_name) and param_value #Check global parameters
+
             raise CoreClientError.new("api.service.function.parameter.undefined") unless type_name
 
             builder.parameter {

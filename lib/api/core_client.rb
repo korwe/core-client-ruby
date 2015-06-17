@@ -3,6 +3,8 @@ module Korwe
     class CoreClient
       include Qpid
 
+      attr_reader :serializer
+      
       def initialize
         @sender_queue_definition = MessageQueue::ClientToCore
         @data_queue_definition = MessageQueue::Data
