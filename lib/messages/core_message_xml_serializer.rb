@@ -144,7 +144,11 @@ module Korwe
           if 'DateTime' == type.name
             builder.__send__ tag_name, value.strftime(TIMESTAMP_FORMAT)
           else
-            builder.__send__ tag_name, value.to_s
+            if property_definition.nil?
+              builder.__send__ tag_name, value.to_s
+            else
+              builder.__send__ tag_name, value.to_s, :class=>@api_definition.types[property_definition.type].name
+            end
           end
         else
           if reference.nil?
