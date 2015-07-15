@@ -257,6 +257,8 @@ module Korwe
                     unless property_node.nil?
                       property_type = @api_definition.types[property_definition.type]
 
+                      raise CoreClientError.new("api.type.undefined", "Type [#{property_definition.type}] not undefined", [property_definition.type]) unless property_type
+
                       if property_type.inherited and property_node.has_attribute?('class')
                         property_node.node_name = property_node.get_attribute('class')
                       else
