@@ -6,16 +6,23 @@ module Korwe
     end
 
     class TypeDefinition
-      attr_accessor :name,  :type_attributes, :inherits_from, :inherited
-
-      def inherited?
-        self.inherited
-      end
+      attr_accessor :name,  :type_attributes, :inherits_from, :inherited, :is_array
 
       def initialize(name)
         self.name=name
         self.type_attributes=Hash.new
       end
+
+      def inherited?
+        self.inherited
+      end
+
+      def array?
+        self.is_array
+      end
+
+
+
     end
 
     class PrimitiveTypeDefinition < TypeDefinition

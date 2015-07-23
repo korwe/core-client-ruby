@@ -219,6 +219,15 @@ module Korwe
               list << deserialize_data(item, object_id, graph, objects_array)
             end
             return list
+          when /\[\]/ #handle arrays
+            return node.text if node.node_name.include? 'Byte' #handle byte arrays
+
+            list = Array.new
+            node.children.each do |item|
+              object_id = add_object_to_graph(list, parent_id, graph, objects_array)
+              list << deserialize_data(item, object_id, graph, objects_array)
+            end
+            return list
           when 'boolean'
             return node.text == 'true'
           else
