@@ -64,7 +64,8 @@ module Korwe
       PRIMITIVE_TYPES = {'Object'=>PrimitiveTypeDefinition.new('object',nil), 'Integer' => PrimitiveTypeDefinition.new('int', Integer), 'String'=> PrimitiveTypeDefinition.new('string', String),
                          'Long'=>PrimitiveTypeDefinition.new('long', Integer), 'Float'=>PrimitiveTypeDefinition.new('float', Float), 'Boolean'=>TypeDefinition.new('boolean'),
                          'TrueClass'=>TypeDefinition.new('boolean'), 'FalseClass'=>TypeDefinition.new('boolean'),
-                         'Double'=>PrimitiveTypeDefinition.new('double', Float), 'DateTime'=>PrimitiveTypeDefinition.new('DateTime', Time)}
+                         'Double'=>PrimitiveTypeDefinition.new('double', Float), 'DateTime'=>PrimitiveTypeDefinition.new('DateTime', Time),
+                         'Byte'=> PrimitiveTypeDefinition.new('byte', String)}
       PRIMITIVE_TYPES['Object'].inherited=true
       BASIC_GENERIC_TYPES = {'Map'=>GenericTypeDefinition.new('map'), 'List'=>GenericTypeDefinition.new('list'), 'Set'=>GenericTypeDefinition.new('set')}
 
