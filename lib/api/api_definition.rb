@@ -50,7 +50,7 @@ module Korwe
     end
 
     class ServiceDefinition
-      attr_accessor :name, :method_list
+      attr_accessor :name, :packageName, :method_list
 
       def initialize(name)
         self.name=name
@@ -131,7 +131,7 @@ module Korwe
       def initialize_service(service_file)
         yaml = YAML::load_file(service_file)
         service = ServiceDefinition.new(yaml['name'])
-
+        service.packageName=yaml['package']
         #process function definitions
         yaml['functions'].each do |function_definition|
           method = ServiceMethod.new(function_definition['name'])
