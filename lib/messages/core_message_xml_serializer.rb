@@ -261,23 +261,21 @@ module Korwe
                 else
                   instance = type.klass.new
                   object_id = add_object_to_graph(instance, parent_id, graph, objects_array)
-                  type.type_attributes.each do |property_name, property_definition|
-                    property_node = node.at_xpath("./#{property_name}")
-                    unless property_node.nil?
-                      property_type = @api_definition.types[property_definition.type]
+                  node.children.each do |child_node|
+                    property_name = child_node.name
+                    property_definition = type.type_attributes[property_name]
+                    property_type = @api_definition.types[property_definition.type]
 
-                      raise CoreClientError.new("api.type.undefined", "Type [#{property_definition.type}] not undefined", [property_definition.type]) unless property_type
+                    raise CoreClientError.new("api.type.undefined", "Type [#{property_definition.type}] not undefined", [property_definition.type]) unless property_type
 
-                      if property_type.inherited and property_node.has_attribute?('class')
-                        property_node.node_name = property_node.get_attribute('class')
-                      else
-                        property_node.node_name=property_type.name
-                      end
-                      instance.send("#{property_name}=", deserialize_data(property_node, object_id, graph, objects_array))
+                    if property_type.inherited and child_node.has_attribute?('class')
+                      child_node.node_name = child_node.get_attribute('class')
+                    else
+                      child_node.node_name=property_type.name
                     end
+                    instance.send("#{property_name}=", deserialize_data(child_node, object_id, graph, objects_array))
                   end
                 end
-
                 return instance
               end
             end
