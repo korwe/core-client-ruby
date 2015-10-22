@@ -264,16 +264,21 @@ module Korwe
                   node.children.each do |child_node|
                     property_name = child_node.name
                     property_definition = type.type_attributes[property_name]
-                    property_type = @api_definition.types[property_definition.type]
+                    if type.type_attributes.has_key? property_name
+                      property_type = @api_definition.types[property_definition.type]
 
-                    raise CoreClientError.new("api.type.undefined", "Type [#{property_definition.type}] not undefined", [property_definition.type]) unless property_type
+                      raise CoreClientError.new("api.type.undefined", "Type [#{property_definition.type}] not undefined", [property_definition.type]) unless property_type
 
-                    if property_type.inherited and child_node.has_attribute?('class')
-                      child_node.node_name = child_node.get_attribute('class')
+                      if property_type.inherited and child_node.has_attribute?('class')
+                        child_node.node_name = child_node.get_attribute('class')
+                      else
+                        child_node.node_name=property_type.name
+                      end
+                      instance.send("#{property_name}=", deserialize_data(child_node, object_id, graph, objects_array))
                     else
-                      child_node.node_name=property_type.name
+                      LOG.warn "No attribute[#{property_name}] found for #{type.name} in api-definition, skipping"
                     end
-                    instance.send("#{property_name}=", deserialize_data(child_node, object_id, graph, objects_array))
+
                   end
                 end
                 return instance
