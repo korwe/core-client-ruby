@@ -24,18 +24,6 @@ module Korwe
         @connection.close if @connection and @connection.open?
       end
 
-      def init_session(session_id)
-        message = InitiateSessionRequest.new(session_id)
-        make_request(message)
-        puts "Session created"
-      end
-
-      def end_session(session_id)
-        message = KillSessionRequest.new(session_id)
-        make_request(message)
-        puts "Session killed"
-      end
-
       def make_request(message)
         return LOG.error "Error sending message: Requires session id" unless message.session_id
 
