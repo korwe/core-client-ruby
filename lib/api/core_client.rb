@@ -37,7 +37,7 @@ module Korwe
       end
 
       def make_request(message)
-        return puts("Error sending message: Requires session id") unless message.session_id
+        return LOG.error "Error sending message: Requires session id" unless message.session_id
 
         request = Messaging::Message.new
         request.content = @serializer.serialize(message)
@@ -45,7 +45,7 @@ module Korwe
         request['guid'] = message.guid
         request['messageType'] = message.message_type
         request['sessionId'] = message.session_id
-        puts "SENDING: #{request.content}"
+        LOG.debug "SENDING: #{request.content}"
 
         response_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::CoreToClient, message.session_id)
         @sender.send(request)
@@ -60,7 +60,7 @@ module Korwe
 
       def make_data_request(message)
         unless message.session_id
-          puts('Error sending message: Requires session id')
+          LOG.error 'Error sending message: Requires session id'
           raise CoreClientError.new('session.required', 'A session is required')
         end
 
@@ -79,7 +79,7 @@ module Korwe
         rescue MessagingError => qme
           handle_qpid_messaging_error qme
         rescue Exception => e
-          puts "Error retreiving data message from server: #{e}"
+          LOG.error "Error retreiving data message from server: #{e}"
           raise e
         ensure
           data_subscriber.close if data_subscriber
@@ -93,7 +93,7 @@ module Korwe
         elsif qme.message.start_with? 'resource-deleted'
           raise CoreClientError.new('queue.deleted', 'Message queue was deleted')
         else
-          puts "Messaging error >>> #{qme}"
+          LOG.error "Messaging error >>> #{qme}"
           raise CoreClientError.new('noResponse', 'Unknown messaging error')
         end
       end

@@ -199,7 +199,7 @@ module Korwe
         begin
           const = eval("::#{constant_name}")
         rescue NameError
-          puts "Warning: No class exists for #{constant_name}"
+          LOG.warn "No class exists for #{constant_name}"
         end
         const
       end
