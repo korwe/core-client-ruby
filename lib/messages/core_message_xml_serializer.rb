@@ -123,7 +123,7 @@ module Korwe
             type_name = function_definition.parameters[param_name]
             type_name = @api_definition.global_parameters[param_name] if !type_name and @api_definition.global_parameters.key?(param_name) and param_value #Check global parameters
 
-            raise CoreClientError.new("api.service.function.parameter.undefined") unless type_name
+            raise CoreClientError.new("api.service.function.parameter.undefined", nil, [message.choreography, message.function, param_name]) unless type_name
 
             builder.parameter {
               builder.name param_name
@@ -212,7 +212,7 @@ module Korwe
               map[deserialize_data(entry.children.first, object_id, graph, objects_array)] = deserialize_data(entry.children.last, object_id, graph, objects_array)
             end
             return map
-          when 'list', 'set'
+          when 'list', 'set', 'linked-hash-set'
             list = Array.new
             node.children.each do |item|
               object_id = add_object_to_graph(list, parent_id, graph, objects_array)
@@ -245,7 +245,7 @@ module Korwe
                 if node.node_name == "null"
                   return nil
                 else
-                  raise Com::Korwe::NotImplementedError(node.node_name)
+                  raise Korwe::TheCore::NotImplementedError(node.node_name)
                 end
               else
                 if type.klass.nil?
