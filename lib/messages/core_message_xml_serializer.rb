@@ -220,7 +220,7 @@ module Korwe
             end
             return list
           when /\[\]/ #handle arrays
-            return node.text if node.node_name.include? 'Byte' #handle byte arrays
+            return node.text if node.node_name.downcase.include? 'byte' #handle byte arrays
 
             list = Array.new
             node.children.each do |item|
@@ -239,7 +239,7 @@ module Korwe
               return node.text if type.klass == String
               return Time.parse(node.text) if type.klass == Time
               return nil
-            else #its defined by the external api
+            else # it's defined by the external api
               type = @api_definition.types[node.node_name]
               unless type
                 if node.node_name == "null"
