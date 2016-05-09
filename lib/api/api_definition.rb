@@ -123,7 +123,9 @@ module Korwe
 
 
       def initialize_services(services_path)
+        LOG.debug("Initializing services from #{services_path}")
         Dir.glob(services_path + File::SEPARATOR + "**" + File::SEPARATOR + "*.yaml").each do |service_path|
+          LOG.debug("Initializing service from #{service_path}")
           initialize_service(service_path)
         end
       end

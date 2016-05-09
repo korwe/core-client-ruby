@@ -16,7 +16,7 @@ module Korwe
       end
 
       def to_s
-        "ServiceRequest{function='#{function}', #{params}}"
+        "ServiceRequest{choreography='#{choreography}, function='#{function}', #{params}}"
       end
     end
   end

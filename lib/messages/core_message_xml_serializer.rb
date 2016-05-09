@@ -15,6 +15,7 @@ module Korwe
       end
 
       def serialize(message)
+        LOG.debug "Serializing message #{message}"
         builder = Builder::XmlMarkup.new(:indent=>2)
 
         builder.coreMessage do |b|
