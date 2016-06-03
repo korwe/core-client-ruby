@@ -5,11 +5,12 @@ module Korwe
 
       attr_reader :serializer
       
-      def initialize
+      def initialize(timeout)
         @sender_queue_definition = MessageQueue::ClientToCore
         @data_queue_definition = MessageQueue::Data
         @message_cache = Hash.new
         @data_cache = Hash.new
+        @timeout = timeout ? timeout : 10000
       end
 
       def connect(core_config, api_definition_path)
@@ -38,7 +39,7 @@ module Korwe
         response_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::CoreToClient, message.session_id)
         @sender.send(request)
         begin
-          response_subscriber.get_response
+          response_subscriber.get_response(@timeout)
         rescue MessagingError => qme
           handle_qpid_messaging_error qme
         ensure
@@ -55,7 +56,7 @@ module Korwe
         begin
           data_subscriber = CoreSubscriber.new(@session, @serializer, MessageQueue::Data, message.session_id)
           response_message = make_request(message)
-          data_message = data_subscriber.get_response
+          data_message = data_subscriber.get_response(@timeout)
 
           class << response_message
             attr_accessor :data
@@ -67,7 +68,7 @@ module Korwe
         rescue MessagingError => qme
           handle_qpid_messaging_error qme
         rescue Exception => e
-          LOG.error "Error retreiving data message from server: #{e}"
+          LOG.error "Error retrieving data message from server: #{e}"
           raise e
         ensure
           data_subscriber.close if data_subscriber
